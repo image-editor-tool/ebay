@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Ebay Image Editor - Pro Resizer</title>
+
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f3f3f3;
+            text-align: center;
+            padding: 30px;
+            margin: 0;
+        }
+
+        header h2 {
+            margin-top: 0;
+            color: #333;
+        }
+
+        /* --- Login Page Styles --- */
+        .login-container {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            max-width: 400px;
+            margin: 100px auto;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            display: block; /* Shown by default */
+        }
+
+        .login-container h2 {
+            margin-bottom: 20px;
+        }
+
+        /* --- Main Layout --- */
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 1400px;
+            margin: auto;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .app-workspace {
+            display: flex;
+            justify-content: center;
+            align-items: stretch;
+            gap: 30px;
+            margin-top: 20px;
+        }
+
+        .left-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 10px; /* REDUCED from 15px */
+            width: 600px; 
+            height: 600px; /* Force panel to match canvas height */
+        }
+
+        /* --- Tools Sections --- */
+        .tool-section {
+            border: 1px solid #ddd;
+            padding: 10px; /* REDUCED from 15px */
+            border-radius: 8px;
+            background: #fafafa;
+            text-align: left;
+            flex-shrink: 0; /* Prevents squishing */
+        }
+
+        .tool-section h3 {
+            margin-top: 0;
+            font-size: 13px; /* REDUCED from 16px */
+            color: #444;
+            border-bottom: 2px solid #ddd;
+            padding-bottom: 4px; /* REDUCED from 5px */
+            margin-bottom: 6px; /* REDUCED from 10px */
+        }
+
+        /* --- Left Column: Small Drag & Drop (Background) --- */
+        #dropZone {
+            border: 2px dashed #2d89ef;
+            padding: 10px;
+            font-weight: bold;
+            font-size: 18px;
+            color: #2d89ef;
+            cursor: pointer;
+            background: #f0f8ff;
+            transition: 0.2s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            height: 70px; 
+            box-sizing: border-box;
+            border-radius: 8px;
+            flex-shrink: 0;
+        }
+
+        #dropZone:hover {
+            background: #e1efff;
+        }
+
+        /* --- Border & Text Settings --- */
+        .control-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px; /* REDUCED from 10px */
+            margin-bottom: 6px; /* REDUCED from 10px */
+        }
+        
+        .control-row label {
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 11px; /* REDUCED from 13px */
+        }
+        
+        input[type="range"] { width: 120px; }
+        
+        .text-input-field {
+            width: 100%;
+            padding: 5px; /* REDUCED from 8px */
+            margin-bottom: 6px; /* REDUCED from 10px */
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 12px; /* ADDED to make text smaller */
+        }
+
+        /* --- Left Column: Large Folder Area --- */
+        .overlay-folder-section {
+            border: 2px dashed #27ae60;
+            padding: 10px 10px 5px 10px; /* REDUCED padding */
+            border-radius: 8px;
+            background: #f4fff8;
+            flex: 1; 
+            min-height: 0; 
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            box-sizing: border-box;
+        }
+
+        .folder-grid {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 10px;
+            padding: 10px;
+            padding-bottom: 15px;
+            width: 100%;
+            background: transparent;
+            overflow-y: auto; /* Adds scrollbar strictly inside box */
+            flex: 1; 
+            align-content: flex-start;
+        }
+
+        /* Custom Scrollbar for Folder Grid */
+        .folder-grid::-webkit-scrollbar { width: 8px; }
+        .folder-grid::-webkit-scrollbar-track { background: #e8f5e9; border-radius: 4px; }
+        .folder-grid::-webkit-scrollbar-thumb { background: #27ae60; border-radius: 4px; }
+
+        .folder-grid img {
+            height: 60px;
+            width: 60px;
+            cursor: pointer;
+            border: 2px solid #ccc;
+            border-radius: 5px;
+            object-fit: contain;
+            transition: 0.2s;
+            background: white;
+        }
+
+        .folder-grid img:hover {
+            border-color: #27ae60;
+            transform: scale(1.05);
+        }
+
+        /* --- Left Column: Action Buttons --- */
+        .action-group {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-shrink: 0;
+        }
+
+        /* --- Center/Right Column: Editing Workspace --- */
+        .right-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .canvas-and-reset {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+        }
+
+        canvas {
+            border: 1px solid #ccc;
+            cursor: default;
+            background-color: #fafafa;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            width: 600px;
+            height: 600px;
+        }
+
+        .reset-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            width: 200px;
+        }
+
+        /* --- Button Styles --- */
+        .btn {
+            padding: 10px 18px;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+            width: 100%;
+        }
+        
+        /* Smaller buttons inside the collapsible content */
+        .collapsible-content .btn {
+            padding: 6px 15px;
+            font-size: 12px;
+        }
+
+        .primary-action-btn { background: #2d89ef; color: white; } 
+        .primary-action-btn:hover { background: #1b5fad; }
+        
+        .delete-btn { background: #e74c3c; color: white; } 
+        .delete-btn:hover { background: #c0392b; }
+
+        .upload-folder-btn { 
+            background: #27ae60; color: white; font-size: 14px; padding: 8px 20px; width: 80%; flex-shrink: 0;
+        } 
+        .upload-folder-btn:hover { background: #219150; }
+
+        .reset-all-btn { background: #34495e; color: white; } 
+        .reset-all-btn:hover { background: #2c3e50; }
+
+        .reset-overlays-btn { background: #f39c12; color: white; } 
+        .reset-overlays-btn:hover { background: #e67e22; }
+
+        .reset-bg-btn { background: #9b59b6; color: white; } 
+        .reset-bg-btn:hover { background: #8e44ad; }
+
+        .template-save-btn { background: #1abc9c; color: white; margin-bottom: 10px;}
+        .template-save-btn:hover { background: #16a085; }
+
+        .template-load-btn { background: #8e44ad; color: white; margin-top: 10px;}
+        .template-load-btn:hover { background: #732d91; }
+
+        .template-dropdown { width: 100%; padding: 8px; border-radius: 5px; border: 1px solid #ccc; font-size: 13px; }
+
+        #folderInstructions { color: #666; margin-top: 10px; font-size: 12px; flex-shrink: 0; }
+
+        /* --- MODAL STYLES --- */
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.6); z-index: 1000; justify-content: center; align-items: center;
+        }
+
+        .modal-box { background: white; padding: 25px; border-radius: 8px; width: 350px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); text-align: left; }
+        .modal-box h3 { margin-top: 0; color: #333; border-bottom: 2px solid #ddd; padding-bottom: 10px; }
+        .modal-box p { font-size: 14px; color: #555; margin-bottom: 10px; }
+        .modal-box input { width: 100%; padding: 10px; margin-bottom: 20px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        .modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
+        .modal-actions .btn { width: auto; padding: 10px 20px; }
+
+        /* --- NEW COLLAPSIBLE STYLES --- */
+        .collapsible-group {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: #fafafa;
+            overflow: hidden; /* Important for animation */
+            margin-bottom: 10px; /* REDUCED from 15px */
+        }
+
+        .collapsible-toggle {
+            width: 100%;
+            padding: 8px 15px; /* REDUCED from 12px 18px */
+            border: none;
+            background: none;
+            color: #333;
+            font-size: 14px; /* REDUCED from 15px */
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            text-align: left;
+            transition: background-color 0.3s;
+        }
+
+        .collapsible-toggle:hover {
+            background-color: #f0f0f0;
+        }
+
+        .collapsible-arrow {
+            font-size: 12px;
+            transition: transform 0.3s;
+        }
+
+        .collapsible-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+            border-top: 1px solid #ddd;
+        }
+
+        /* Classes to toggle */
+        .collapsible-group.open .collapsible-content {
+            max-height: 1000px; /* A safe, sufficiently large number */
+            transition: max-height 0.3s ease-in;
+        }
+
+        .collapsible-group.open .collapsible-arrow {
+            transform: rotate(-180deg);
+        }
+
+        /* Adjust existing tool-section styles to fit inside the group */
+        .collapsible-content .tool-section {
+            border: none;
+            border-bottom: 1px solid #ddd;
+            margin-bottom: 0;
+            border-radius: 0;
+            background-color: transparent;
+        }
+
+        .collapsible-content .tool-section:last-child {
+            border-bottom: none;
+        }
+
+        /* Style for color + checkbox grouping */
+        .color-checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .transparent-checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 11px; /* REDUCED from 13px */
+        }
+    </style>
+</head>
+<body>
+
+<div id="loginPage" class="login-container">
+    <h2>Editor Login</h2>
+    <div id="loginError" style="color: #e74c3c; display: none; margin-bottom: 15px; font-size: 14px; font-weight: bold;">Invalid username or password</div>
+    <input type="text" id="usernameInput" class="text-input-field" placeholder="Username" style="padding: 10px; margin-bottom: 15px; font-size: 14px;" onkeydown="handleLoginKeyPress(event)">
+    <input type="password" id="passwordInput" class="text-input-field" placeholder="Password" style="padding: 10px; margin-bottom: 20px; font-size: 14px;" onkeydown="handleLoginKeyPress(event)">
+    <button class="btn primary-action-btn" style="padding: 12px; font-size: 15px;" onclick="checkLogin()">Login</button>
+</div>
+
+<div class="container" id="mainAppContainer" style="display: none;">
+    <header>
+        <h2>Ebay Image Editor</h2>
+    </header>
+
+    <div class="app-workspace">
+        
+        <div class="left-panel">
+            
+            <div id="dropZone">
+                Drag Drop Background Image Here
+            </div>
+
+            <div class="collapsible-group">
+                <button class="collapsible-toggle" onclick="toggleCollapsible(this)">
+                    <span>Editor Controls</span>
+                    <span class="collapsible-arrow">▼</span>
+                </button>
+                <div class="collapsible-content"> 
+                    <div class="tool-section">
+                        <h3>Background Image Border</h3>
+                        <div class="control-row">
+                            <label>Color: <input type="color" id="borderColor" value="#ff0000" oninput="updateDraw()" onchange="saveState()"></label>
+                            <label>Size (px): <input type="range" id="borderWidth" min="0" max="40" value="0" oninput="updateDraw()" onchange="saveState()"><span id="borderValue">0</span></label>
+                        </div>
+                    </div>
+
+                    <div class="tool-section">
+                        <h3>Canvas & Image Settings</h3>
+                        <div class="control-row">
+                            <label>Canvas Bg: <input type="color" id="canvasBgColor" value="#fafafa" oninput="updateDraw()" onchange="saveState()"></label>
+                            <label>Image Zoom: <input type="range" id="imageZoom" min="0.1" max="3" step="0.1" value="1" oninput="updateDraw()" onchange="saveState()"><span id="imageZoomValue">1</span></label>
+                        </div>
+                    </div>
+
+                    <div class="tool-section">
+                        <h3>Add Custom Text</h3>
+                        <input type="text" id="textInput" class="text-input-field" placeholder="e.g., Size M, Minor Scratch...">
+                        <div class="control-row">
+                            <label>Text: <input type="color" id="textColor" value="#ffffff"></label>
+                            <div class="color-checkbox-group">
+                                <label>Bg: <input type="color" id="textBgColor" value="#e74c3c"></label>
+                                <label class="transparent-checkbox-label">
+                                    <input type="checkbox" id="textTransparentBg" onchange="toggleTextBgInput(this)">
+                                    Transparent
+                                </label>
+                            </div>
+                            <label>Size: <input type="number" id="textSize" value="30" style="width: 40px; padding: 2px;"></label>
+                        </div>
+                        <button class="btn primary-action-btn" onclick="addText()">+ Add Text to Canvas</button>
+                    </div>
+                </div>
+            </div>
+            <div class="overlay-folder-section">
+                <button class="btn upload-folder-btn" onclick="document.getElementById('folderUploader').click()">Load Folder of Overlays</button>
+                <div id="folderInstructions">Click the button above to load your overlay images.</div>
+                <div class="folder-grid" id="folderOverlayList"></div>
+            </div>
+
+            <div class="action-group">
+                <button class="btn delete-btn" onclick="deleteOverlay()">Delete Overlay (Del)</button>
+                <button class="btn primary-action-btn" onclick="downloadImage()">Download Final (Ctrl+S)</button>
+            </div>
+
+        </div>
+
+        <div class="right-panel">
+            <div class="canvas-and-reset">
+                <canvas id="canvas" width="600" height="600"></canvas>
+                
+                <div class="reset-panel">
+                    
+                    <div class="tool-section" style="text-align: center;">
+                        <h3>Undo / Redo</h3>
+                        <button class="btn reset-all-btn" style="margin-bottom: 5px;" onclick="undo()">Undo (Ctrl+Z)</button>
+                        <button class="btn reset-overlays-btn" onclick="redo()">Redo (Ctrl+Y)</button>
+                    </div>
+
+                    <div class="tool-section" style="text-align: center;">
+                        <h3>Layout Templates</h3>
+                        <button class="btn template-save-btn" onclick="openSaveModal()">Save Positions</button>
+                        <select id="templateSelect" class="template-dropdown">
+                            <option value="">-- Saved Templates --</option>
+                        </select>
+                        <button class="btn template-load-btn" onclick="loadTemplate()">Load Template</button>
+                        <button class="btn delete-btn" style="margin-top: 10px;" onclick="deleteTemplate()">Delete Template</button>
+                    </div>
+
+                    <div class="tool-section">
+                        <h3>Reset Options</h3>
+                        <button class="btn reset-all-btn" style="margin-bottom: 10px;" onclick="resetAll()">Reset App (F5)</button>
+                        <button class="btn reset-overlays-btn" style="margin-bottom: 10px;" onclick="resetOverlaysOnly()">Reset Overlays</button>
+                        <button class="btn reset-bg-btn" onclick="resetImageOnly()">Reset Background</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+    </div>
+
+    <input type="file" id="folderUploader" accept="image/*" webkitdirectory directory style="display:none;">
+
+</div>
+
+<div id="customSaveModal" class="modal-overlay">
+    <div class="modal-box">
+        <h3>Save Layout Template</h3>
+        <p>Enter a name for this layout template:</p>
+        <input type="text" id="templateNameInput" placeholder="e.g., Summer Sale Layout" onkeydown="handleModalKeyPress(event)">
+        <div class="modal-actions">
+            <button class="btn reset-all-btn" onclick="closeSaveModal()">Cancel</button>
+            <button class="btn template-save-btn" onclick="confirmSaveTemplate()">Save</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- LOGIN LOGIC ---
+    function checkLogin() {
+        const user = document.getElementById("usernameInput").value.trim();
+        const pass = document.getElementById("passwordInput").value.trim();
+        const errorDiv = document.getElementById("loginError");
+
+        if ((user === "ShoaibJavaid" && pass === "Qwpozxmn900") ||
+            (user === "SohaArif" && pass === "Aslkzaml000")) {
+            // Success: Hide login, show main app
+            document.getElementById("loginPage").style.display = "none";
+            document.getElementById("mainAppContainer").style.display = "block";
+            errorDiv.style.display = "none";
+            
+            // Clear inputs for security
+            document.getElementById("usernameInput").value = "";
+            document.getElementById("passwordInput").value = "";
+        } else {
+            // Failure
+            errorDiv.style.display = "block";
+        }
+    }
+
+    function handleLoginKeyPress(event) {
+        if (event.key === "Enter") {
+            checkLogin();
+        }
+    }
+
+    // --- MAIN APP LOGIC ---
+    let canvas = document.getElementById("canvas");
+    let ctx = canvas.getContext("2d");
+
+    let baseImage = new Image();
+    let overlays = [];
+    let selectedOverlay = null;
+
+    let dragging = false;
+    let resizing = false;
+    let resizeCorner = null;
+    let startX, startY;
+    let hasChangedDuringDrag = false; 
+
+    // Define all inputs globally for easy access
+    const borderColorInput = document.getElementById("borderColor");
+    const borderWidthInput = document.getElementById("borderWidth");
+    const borderValueSpan = document.getElementById("borderValue");
+    const canvasBgColorInput = document.getElementById("canvasBgColor");
+    const imageZoomInput = document.getElementById("imageZoom");
+    const imageZoomValueSpan = document.getElementById("imageZoomValue");
+    
+    // Editor variables to be saved to history
+    let currentBorderColor = borderColorInput.value;
+    let currentBorderWidth = parseInt(borderWidthInput.value);
+    let currentCanvasBgColor = canvasBgColorInput.value;
+    let currentImageZoom = parseFloat(imageZoomInput.value);
+
+    const HANDLE_SIZE = 10;
+
+    // --- UNDO / REDO SYSTEM (HISTORY) ---
+    let history = [];
+    let historyIndex = -1;
+
+    function saveState() {
+        if (historyIndex < history.length - 1) {
+            history = history.slice(0, historyIndex + 1);
+        }
+        
+        let snapshot = overlays.map(o => ({...o})); 
+        
+        history.push({
+            overlays: snapshot,
+            borderColor: currentBorderColor,
+            borderWidth: currentBorderWidth,
+            canvasBgColor: currentCanvasBgColor, 
+            imageZoom: currentImageZoom, 
+            baseImageSrc: baseImage.src
+        });
+        historyIndex++;
+    }
+
+    function undo() {
+        if (historyIndex > 0) {
+            historyIndex--;
+            restoreState();
+        }
+    }
+
+    function redo() {
+        if (historyIndex < history.length - 1) {
+            historyIndex++;
+            restoreState();
+        }
+    }
+
+    function restoreState() {
+        let state = history[historyIndex];
+        
+        currentBorderColor = state.borderColor;
+        currentBorderWidth = state.borderWidth;
+        currentCanvasBgColor = state.canvasBgColor; 
+        currentImageZoom = state.imageZoom; 
+
+        // Update UI to match restored state
+        borderColorInput.value = currentBorderColor;
+        borderWidthInput.value = currentBorderWidth;
+        borderValueSpan.innerText = currentBorderWidth;
+        canvasBgColorInput.value = currentCanvasBgColor; 
+        imageZoomInput.value = currentImageZoom; 
+        imageZoomValueSpan.innerText = currentImageZoom.toFixed(1); 
+
+        overlays = state.overlays.map(o => ({...o}));
+        selectedOverlay = null; 
+        
+        if (baseImage.src !== state.baseImageSrc) {
+            baseImage = new Image();
+            baseImage.onload = draw;
+            if (state.baseImageSrc) {
+                baseImage.src = state.baseImageSrc;
+            } else {
+                draw();
+            }
+        } else {
+            draw();
+        }
+    }
+
+    // --- INITIALIZATION ---
+    window.onload = function() {
+        updateTemplateDropdown();
+        saveState(); // Save initial blank state
+    };
+
+    // --- KEYBOARD SHORTCUTS ---
+    document.addEventListener("keydown", function(e) {
+        // Prevent shortcuts if editor is hidden (user not logged in)
+        if (document.getElementById("mainAppContainer").style.display === "none") return;
+        
+        if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
+
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+            e.preventDefault(); downloadImage();
+        }
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+            e.preventDefault();
+            if (e.shiftKey) redo(); else undo();
+        }
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
+            e.preventDefault(); redo();
+        }
+        if (e.key === "Delete" || e.key === "Backspace") {
+            e.preventDefault(); deleteOverlay();
+        }
+    });
+
+    // --- EDITOR SETTINGS HANDLERS ---
+    function updateDraw() {
+        currentBorderColor = borderColorInput.value;
+        currentBorderWidth = parseInt(borderWidthInput.value);
+        borderValueSpan.innerText = currentBorderWidth;
+        currentCanvasBgColor = canvasBgColorInput.value;
+        currentImageZoom = parseFloat(imageZoomInput.value);
+        imageZoomValueSpan.innerText = currentImageZoom.toFixed(1);
+        draw();
+    }
+
+    function toggleCollapsible(toggleBtn) {
+        let group = toggleBtn.closest('.collapsible-group');
+        group.classList.toggle('open');
+    }
+
+    function toggleTextBgInput(checkbox) {
+        let bgColorInput = document.getElementById("textBgColor");
+        bgColorInput.disabled = checkbox.checked;
+    }
+
+    // --- TEXT ENGINE ---
+    function addText() {
+        let textContent = document.getElementById("textInput").value || "New Text";
+        let tColor = document.getElementById("textColor").value;
+        let size = parseInt(document.getElementById("textSize").value) || 30;
+
+        let transparentBgCheckbox = document.getElementById("textTransparentBg");
+        let bColor = transparentBgCheckbox.checked ? null : document.getElementById("textBgColor").value;
+
+        ctx.font = "bold " + size + "px Arial";
+        let metrics = ctx.measureText(textContent);
+        let padding = 20;
+        let w = metrics.width + padding;
+        let h = size + padding;
+
+        overlays.push({
+            type: 'text', content: textContent, textColor: tColor, bgColor: bColor,
+            x: 50, y: 50, width: w, height: h, ratio: w / h
+        });
+        
+        document.getElementById("textInput").value = ""; 
+        saveState();
+        draw();
+    }
+
+    // --- FILE LOADING ---
+    const dropZone = document.getElementById("dropZone");
+    dropZone.addEventListener("dragover", e => e.preventDefault());
+    dropZone.addEventListener("drop", e => {
+        e.preventDefault();
+        loadBackgroundImage(e.dataTransfer.files[0]);
+    });
+
+    function loadBackgroundImage(file) {
+        if (!file.type.startsWith('image/')) {
+            alert("Please drag and drop a valid image file."); return;
+        }
+        let reader = new FileReader();
+        reader.onload = (event) => {
+            baseImage.src = event.target.result;
+            baseImage.onload = () => { draw(); saveState(); };
+        }
+        reader.readAsDataURL(file);
+    }
+
+    document.getElementById('folderUploader').addEventListener('change', function(e) {
+        let folderList = document.getElementById('folderOverlayList');
+        let instructions = document.getElementById('folderInstructions');
+        folderList.innerHTML = '';
+        let files = Array.from(e.target.files).filter(file => file.type.startsWith('image/'));
+        if (files.length > 0) instructions.style.display = 'none'; 
+        files.forEach(file => {
+            let reader = new FileReader();
+            reader.onload = function(event) {
+                let img = document.createElement("img");
+                img.src = event.target.result;
+                img.onclick = () => addOverlay(event.target.result);
+                folderList.appendChild(img);
+            };
+            reader.readAsDataURL(file);
+        });
+    });
+
+    function addOverlay(src) {
+        let newImg = new Image();
+        newImg.onload = function() {
+            overlays.push({
+                type: 'image', img: newImg, x: 50, y: 50, width: 150, height: 150 / (newImg.width / newImg.height), ratio: newImg.width / newImg.height
+            });
+            saveState();
+            draw();
+        };
+        newImg.src = src;
+    }
+
+    // --- DRAWING LOGIC ---
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // 1. NEW: Draw Canvas Background Color
+        ctx.fillStyle = currentCanvasBgColor;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // 2. Draw Background Image with ZOOM and ASPECT RATIO logic
+        if (baseImage.src) {
+            let imgAspect = baseImage.naturalWidth / baseImage.naturalHeight;
+            let canvasAspect = canvas.width / canvas.height; // which is 1
+            let drawW, drawH, drawX, drawY;
+
+            if (imgAspect > canvasAspect) { // Wider than square
+                drawW = canvas.width;
+                drawH = drawW / imgAspect;
+            } else { // Taller than square or square
+                drawH = canvas.height;
+                drawW = drawH * imgAspect;
+            }
+
+            // Apply zoom and calculate to center
+            drawW *= currentImageZoom;
+            drawH *= currentImageZoom;
+            drawX = (canvas.width - drawW) / 2;
+            drawY = (canvas.height - drawH) / 2;
+
+            ctx.drawImage(baseImage, drawX, drawY, drawW, drawH);
+        }
+
+        // 3. Border (Draw after image, slightly inside)
+        if (currentBorderWidth > 0 && baseImage.src) {
+            ctx.strokeStyle = currentBorderColor;
+            ctx.lineWidth = currentBorderWidth;
+            let offset = currentBorderWidth / 2;
+            ctx.strokeRect(offset, offset, canvas.width - currentBorderWidth, canvas.height - currentBorderWidth);
+        }
+
+        // 4. Overlays
+        overlays.forEach(o => {
+            if (o.type === 'text') {
+                if (o.bgColor) { ctx.fillStyle = o.bgColor; ctx.fillRect(o.x, o.y, o.width, o.height); }
+                ctx.fillStyle = o.textColor;
+                let dynamicFontSize = o.height * 0.6; ctx.font = "bold " + dynamicFontSize + "px Arial";
+                ctx.textAlign = "center"; ctx.textBaseline = "middle";
+                ctx.fillText(o.content, o.x + o.width/2, o.y + o.height/2);
+            } else {
+                if (o.img) ctx.drawImage(o.img, o.x, o.y, o.width, o.height);
+            }
+            if (o === selectedOverlay) { ctx.strokeStyle = "#2d89ef"; ctx.lineWidth = 2; ctx.strokeRect(o.x, o.y, o.width, o.height); drawHandles(o); }
+        });
+    }
+
+    function drawHandles(o) {
+        ctx.fillStyle = "white"; ctx.strokeStyle = "#2d89ef";
+        getCorners(o).forEach(c => { ctx.beginPath(); ctx.rect(c.x - HANDLE_SIZE / 2, c.y - HANDLE_SIZE / 2, HANDLE_SIZE, HANDLE_SIZE); ctx.fill(); ctx.stroke(); });
+    }
+
+    function getCorners(o) { return [ {x: o.x, y: o.y}, {x: o.x + o.width, y: o.y}, {x: o.x, y: o.y + o.height}, {x: o.x + o.width, y: o.y + o.height} ]; }
+
+    // --- MOUSE INTERACTION ---
+    canvas.addEventListener("mousedown", function(e) {
+        let rect = canvas.getBoundingClientRect(); let x = e.clientX - rect.left; let y = e.clientY - rect.top; hasChangedDuringDrag = false;
+        if (selectedOverlay) {
+            for (let i = 0; i < 4; i++) {
+                let c = getCorners(selectedOverlay)[i];
+                if (x >= c.x - HANDLE_SIZE && x <= c.x + HANDLE_SIZE && y >= c.y - HANDLE_SIZE && y <= c.y + HANDLE_SIZE) { resizing = true; resizeCorner = i; return; }
+            }
+        }
+        let clickedOverlay = null;
+        for (let i = overlays.length - 1; i >= 0; i--) { let o = overlays[i]; if (x > o.x && x < o.x + o.width && y > o.y && y < o.y + o.height) { clickedOverlay = o; break; } }
+        if (clickedOverlay) { selectedOverlay = clickedOverlay; dragging = true; startX = x - selectedOverlay.x; startY = y - selectedOverlay.y; overlays.splice(overlays.indexOf(selectedOverlay), 1); overlays.push(selectedOverlay); } else { selectedOverlay = null; }
+        draw();
+    });
+
+    window.addEventListener("mousemove", function(e) {
+        if (!dragging && !resizing) return;
+        hasChangedDuringDrag = true;
+        let rect = canvas.getBoundingClientRect(); let x = e.clientX - rect.left; let y = e.clientY - rect.top;
+        if (dragging && selectedOverlay) { selectedOverlay.x = x - startX; selectedOverlay.y = y - startY; }
+        if (resizing && selectedOverlay) {
+            let o = selectedOverlay;
+            switch(resizeCorner) {
+                case 3: o.width = Math.max(20, x - o.x); o.height = o.width / o.ratio; break;
+                case 0: let newWidth = (o.x + o.width) - x; if (newWidth > 20) { o.x = x; o.width = newWidth; o.height = newWidth / o.ratio; } break;
+                case 1: let trWidth = Math.max(20, x - o.x); let hDiff = (trWidth / o.ratio) - o.height; o.y -= hDiff; o.width = trWidth; o.height = trWidth / o.ratio; break;
+                case 2: let blWidth = (o.x + o.width) - x; if (blWidth > 20) { o.x = x; o.width = blWidth; o.height = blWidth / o.ratio; } break;
+            }
+        }
+        draw();
+    });
+
+    window.addEventListener("mouseup", function() {
+        if ((dragging || resizing) && hasChangedDuringDrag) saveState();
+        dragging = false; resizing = false; hasChangedDuringDrag = false;
+    });
+
+    // --- ACTIONS ---
+    function deleteOverlay() { if (selectedOverlay) { overlays = overlays.filter(o => o !== selectedOverlay); selectedOverlay = null; saveState(); draw(); } }
+
+    function downloadImage() {
+        selectedOverlay = null; draw();
+        setTimeout(() => { const link = document.createElement("a"); link.download = "ebay_image_" + Date.now() + ".png"; link.href = canvas.toDataURL("image/png"); link.click(); }, 50);
+    }
+
+    function resetAll() { location.reload(); }
+
+    function resetOverlaysOnly() { overlays = []; selectedOverlay = null; saveState(); draw(); }
+
+    function resetImageOnly() {
+        baseImage = new Image(); baseImage.onload = () => { draw(); saveState(); }; 
+        currentBorderWidth = 0; borderWidthInput.value = 0; borderValueSpan.innerText = 0;
+        currentCanvasBgColor = "#fafafa"; canvasBgColorInput.value = "#fafafa"; 
+        currentImageZoom = 1; imageZoomInput.value = 1; imageZoomValueSpan.innerText = 1; 
+        draw(); saveState();
+    }
+
+    // --- MODAL & TEMPLATE LOGIC ---
+    function openSaveModal() { if (overlays.length === 0 && currentBorderWidth === 0) { alert("Please add some overlays or a border to the canvas before saving a template."); return; } document.getElementById("customSaveModal").style.display = "flex"; document.getElementById("templateNameInput").focus(); }
+    function closeSaveModal() { document.getElementById("customSaveModal").style.display = "none"; document.getElementById("templateNameInput").value = ""; }
+    function handleModalKeyPress(event) { if (event.key === "Enter") confirmSaveTemplate(); else if (event.key === "Escape") closeSaveModal(); }
+
+    function confirmSaveTemplate() {
+        let nameInput = document.getElementById("templateNameInput"); let name = nameInput.value.trim();
+        if (!name) { alert("Please enter a template name."); nameInput.focus(); return; }
+        let templateData = {
+            border: { color: currentBorderColor, width: currentBorderWidth },
+            canvasBgColor: currentCanvasBgColor, 
+            imageZoom: currentImageZoom, 
+            items: overlays.map(o => { let bObj = { type: o.type || 'image', x: o.x, y: o.y, width: o.width, height: o.height, ratio: o.ratio }; if (o.type === 'text') { bObj.content = o.content; bObj.textColor = o.textColor; bObj.bgColor = o.bgColor; } else { bObj.src = o.img.src; } return bObj; })
+        };
+        let templates = JSON.parse(localStorage.getItem('ebayTemplates') || '{}'); templates[name] = templateData;
+        try { localStorage.setItem('ebayTemplates', JSON.stringify(templates)); updateTemplateDropdown(); document.getElementById("templateSelect").value = name; closeSaveModal(); } catch(e) { alert("Storage limit exceeded! Your overlay images are too large to save in the browser memory."); }
+    }
+
+    function loadTemplate() {
+        let select = document.getElementById("templateSelect"); let name = select.value; if (!name) { alert("Please select a template from the dropdown first."); return; }
+        let templates = JSON.parse(localStorage.getItem('ebayTemplates') || '{}'); let templateData = templates[name];
+        if (templateData) {
+            overlays = []; selectedOverlay = null; let itemsToLoad = Array.isArray(templateData) ? templateData : templateData.items;
+            if (!Array.isArray(templateData)) {
+                if (templateData.border) { currentBorderColor = templateData.border.color; currentBorderWidth = templateData.border.width; borderColorInput.value = currentBorderColor; borderWidthInput.value = currentBorderWidth; borderValueSpan.innerText = currentBorderWidth; }
+                if (templateData.canvasBgColor) { currentCanvasBgColor = templateData.canvasBgColor; canvasBgColorInput.value = currentCanvasBgColor; } 
+                if (templateData.imageZoom) { currentImageZoom = templateData.imageZoom; imageZoomInput.value = currentImageZoom; imageZoomValueSpan.innerText = currentImageZoom.toFixed(1); } 
+            }
+            if (itemsToLoad && itemsToLoad.length > 0) {
+                itemsToLoad.forEach(data => {
+                    if (data.type === 'text') { overlays.push({ type: 'text', content: data.content, textColor: data.textColor, bgColor: data.bgColor, x: data.x, y: data.y, width: data.width, height: data.height, ratio: data.ratio }); draw(); } 
+                    else { let newImg = new Image(); newImg.onload = function() { overlays.push({ type: 'image', img: newImg, x: data.x, y: data.y, width: data.width, height: data.height, ratio: data.ratio }); draw(); }; newImg.src = data.src || data; }
+                });
+            } else { draw(); }
+            setTimeout(saveState, 100);
+        }
+    }
+
+    // ADDED: Function to handle deleting templates
+    function deleteTemplate() {
+        let select = document.getElementById("templateSelect");
+        let name = select.value;
+        if (!name) {
+            alert("Please select a template from the dropdown to delete.");
+            return;
+        }
+        
+        if (confirm("Are you sure you want to delete the template: '" + name + "'?")) {
+            let templates = JSON.parse(localStorage.getItem('ebayTemplates') || '{}');
+            delete templates[name];
+            localStorage.setItem('ebayTemplates', JSON.stringify(templates));
+            updateTemplateDropdown();
+        }
+    }
+
+    function updateTemplateDropdown() { let select = document.getElementById("templateSelect"); select.innerHTML = '<option value="">-- Saved Templates --</option>'; let templates = JSON.parse(localStorage.getItem('ebayTemplates') || '{}'); for (let name in templates) { let opt = document.createElement('option'); opt.value = name; opt.textContent = name; select.appendChild(opt); } }
+</script>
+
+</body>
+</html>
